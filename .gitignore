@@ -1,0 +1,20 @@
+data/
+*.zip
+*.mp4
+*.wav
+
+# Ignore datasets
+data/
+*.zip
+
+# Ignore model checkpoints if large
+checkpoints/
+*.pth
+*.pt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoint folders
+.ipynb_checkpoints/
