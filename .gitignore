@@ -3,11 +3,7 @@ data/
 *.mp4
 *.wav
 
-# Ignore datasets
-data/
-*.zip
-
-# Ignore model checkpoints if large
+# Model weights (optional, if large)
 checkpoints/
 *.pth
 *.pt
@@ -16,5 +12,8 @@ checkpoints/
 __pycache__/
 *.pyc
 
-# Jupyter checkpoint folders
+# Jupyter checkpoints
 .ipynb_checkpoints/
+
+# macOS system files
+.DS_Store
