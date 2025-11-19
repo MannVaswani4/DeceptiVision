@@ -1,113 +1,66 @@
 import streamlit as st
 import tempfile
 import os
-import pandas as pd
 import numpy as np
+import pandas as pd
 import joblib
 
-from pathlib import Path
+from src.feature_extractor import process_video_to_features
 
-# === import your modules ===
-from src.predict_emotion import predict_emotion
-from src.body_language_yolo import extract_yolo_pose
-from src.video_to_frames import extract_frames
-from src.feature_extractor import process_video_to_features   # rename your function file
-from src.models.face_cnn import FaceCNN
-import torch
+st.title("DeceptiVision — Lie Detection AI")
+st.write("Upload a short video. The system analyzes:")
+st.write("• Facial emotion micro-expressions")
+st.write("• Body language (YOLO pose)")
+st.write("• Motion patterns")
+st.write("Then predicts Lie / Truth.")
 
-
-# Load classifier
-clf = joblib.load("models/deception_classifier.pkl")
-
-st.set_page_config(page_title="DeceptiVision", layout="wide")
-st.title("🕵️‍♂️ DeceptiVision – Lie Detection AI")
-st.write("Upload a short video and get a Truth/Lie prediction with explanation.")
-
-
-# ========================
-#   FILE UPLOADER
-# ========================
 uploaded_video = st.file_uploader("Upload a video", type=["mp4", "mov", "avi"])
 
 if uploaded_video is not None:
-    st.success("Video uploaded!")
+    st.video(uploaded_video)
 
-    # save to temp
-    tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-    tfile.write(uploaded_video.read())
-    temp_video_path = tfile.name
+    # Save temp video
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp:
+        temp.write(uploaded_video.read())
+        video_path = temp.name
 
-    st.video(temp_video_path)
+    st.write("Processing video...")
 
-    st.info("Processing video... This may take 5–20 seconds.")
+    # Extract features
+    features = process_video_to_features(
+        video_path=video_path,
+        class_label=-1,               # unknown
+        out_csv="__streamlit_temp.csv",
+        fps=2,
+        return_features=True          # YOU MUST ADD THIS IN feature_extractor
+    )
 
-    # ========================
-    #   EXTRACT FEATURES
-    # ========================
-    try:
-        features = process_video_to_features(
-            video_path=temp_video_path,
-            class_label=0,     # dummy
-            out_csv="__temp.csv",
-            fps=2
-        )
+    if features is None:
+        st.error("Failed to extract features.")
+    else:
+        st.success("Features extracted!")
 
-        if features is None:
-            st.error("Could not extract features from the video.")
-            st.stop()
+        # Load classifier
+        clf = joblib.load("models/deception_classifier.pkl")
 
-        # ========================
-        #   FORMAT FOR MODEL
-        # ========================
-        X_input = pd.DataFrame([features], columns=clf.feature_names_in_)
+        X = pd.DataFrame([features], columns=clf.feature_names_in_)
+        pred = clf.predict(X)[0]
+        proba = clf.predict_proba(X)[0]
 
-        # Predict
-        pred = clf.predict(X_input)[0]
-        proba = clf.predict_proba(X_input)[0]
+        label = "TRUTH" if pred == 1 else "LIE"
 
-        result = "TRUTH" if pred == 1 else "LIE"
-        color = "green" if result == "TRUTH" else "red"
+        st.header(f"Prediction: **{label}**")
 
-        st.markdown(f"## Prediction: <span style='color:{color}'>{result}</span>", unsafe_allow_html=True)
+        st.write("Confidence:")
+        st.progress(float(max(proba)))
 
-        # Probabilities
-        st.subheader("Prediction Confidence")
-        st.write({
-            "Lie Probability": round(float(proba[0]), 3),
-            "Truth Probability": round(float(proba[1]), 3),
-        })
-
-
-        # ========================
-        #   EXPLANATION SECTION
-        # ========================
-        st.subheader("Why this prediction?")
-
-        # Top random forest feature importance
-        feature_importance = clf.feature_importances_
-        top_idx = np.argsort(feature_importance)[-10:][::-1]
-
-        top_features = pd.DataFrame({
-            "Feature": [clf.feature_names_in_[i] for i in top_idx],
-            "Importance": feature_importance[top_idx]
-        })
-
-        st.write("### 🔍 Top 10 Contributing Features")
-        st.dataframe(top_features)
-
-        # Emotion contribution
-        st.write("### 😀 Emotion Pattern Summary")
-        st.write("Higher volatility or unusual emotion spikes may indicate deception.")
-
-        # Body-language explanation
-        st.write("### 🧍 Body-Language Summary")
-        st.write(
-            "- High movement variance → fidgeting\n"
-            "- Shoulder instability → nervousness\n"
-            "- Low head stability → distraction\n"
-            "- Hand-to-face proximity → classic deception cue"
-        )
-
-    except Exception as e:
-        st.error(f"Processing failed: {e}")
-        st.stop()
+        # Detailed explanation
+        st.subheader("Why this decision?")
+        st.write(f"Truth probability: {proba[1]:.3f}")
+        st.write(f"Lie probability: {proba[0]:.3f}")
+        st.write("The model used:")
+        st.write("• Emotion instability")
+        st.write("• Facial micro-expressions")
+        st.write("• Body movement patterns")
+        st.write("• Head movement variance")
+        st.write("• Hand-to-face behaviors")
