@@ -5,8 +5,7 @@ data/
 
 # Model weights (optional, if large)
 checkpoints/
-*.pth
-*.pt
+
 
 # Python cache
 __pycache__/
