@@ -197,6 +197,43 @@ st.markdown("""
         background: rgba(255, 0, 85, 0.05);
     }
 
+    .dashboard-title {
+        color: #00ffff;
+        font-size: 3rem;
+        margin: 0;
+    }
+
+    /* --- RESPONSIVE DESIGN --- */
+    @media only screen and (max-width: 1024px) {
+        .glitch-title {
+            font-size: 8vw !important; /* Scale with viewport width */
+        }
+        .main-title, .dashboard-title {
+            font-size: 6vw !important;
+        }
+        .landing-content {
+            width: 95% !important;
+            padding: 2rem 1rem !important;
+        }
+        .typewriter {
+            font-size: 4vw !important;
+            white-space: normal !important; /* Allow wrapping if needed */
+            border-right: none !important; /* Hide cursor if wrapping looks bad */
+            animation: none !important; /* Disable complex typing on mobile if it breaks */
+        }
+        
+        .stButton {
+            width: 90% !important;
+            bottom: 10% !important;
+        }
+        .stButton > button {
+            width: 100% !important;
+            min-width: unset !important;
+            font-size: 1rem !important;
+            padding: 0.8rem !important;
+        }
+    }
+
     /* Hide Streamlit Elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -252,7 +289,7 @@ else:
     # --- HEADER ---
     st.markdown("""
     <div class="dashboard-header">
-        <h1 style="color: #00ffff; font-size: 3rem;">DECEPTI_VISION</h1>
+        <h1 class="dashboard-title">DECEPTI_VISION</h1>
         <div style="font-family: 'Space Mono'; color: #888; letter-spacing: 2px;">FORENSIC TRUTH ANALYSIS PROTOCOL V.2.0</div>
     </div>
     """, unsafe_allow_html=True)
