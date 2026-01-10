@@ -1,6 +1,17 @@
 from ultralytics import YOLO
+import torch
 import cv2
 import numpy as np
+
+# PyTorch 2.6+ compat: Monkey-patch torch.load to default weights_only=False
+# This is required because the installed ultralytics library calls torch.load 
+# without arguments, which now defaults to safe-only, breaking loading of complex models.
+_original_load = torch.load
+def safe_load_shim(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+torch.load = safe_load_shim
 
 pose_model = YOLO("yolov8n-pose.pt")
 

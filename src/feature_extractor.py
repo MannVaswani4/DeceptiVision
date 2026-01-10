@@ -1,10 +1,12 @@
-from src.body_language_yolo import extract_yolo_pose     # <-- NEW
+from src.body_language_yolo import extract_yolo_pose
+from src.predict_emotion import predict_emotion, emotion_labels
+from src.video_to_frames import extract_frames
 from pathlib import Path
 import numpy as np
 import csv
 import os
 
-def process_video_to_features(video_path, class_label, out_csv, fps=2):
+def process_video_to_features(video_path, class_label, out_csv, fps=2, return_features=False):
     """
     Extracts:
         - Emotion timeline
@@ -13,10 +15,11 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2):
         - 23 emotion features
         - 7 body-language features
     Then writes one row to CSV.
+    If return_features=True, returns the features list. Like app.py expects.
     """
 
     video_name = Path(video_path).stem
-    frame_dir = Path(f"../data/frames/{video_name}")
+    frame_dir = Path(f"data/frames/{video_name}")
     frame_dir.mkdir(parents=True, exist_ok=True)
 
     # Extract frames from video

@@ -23,11 +23,11 @@ transform = transforms.Compose([
 # Load pretrained model once
 _model = None
 
-def load_emotion_model(model_path="../models/emotion_cnn.pth"):
+def load_emotion_model(model_path="models/emotion_cnn.pth"):
     global _model
     if _model is None:
         model = FaceCNN(num_emotions=7).to(device)
-        state = torch.load(model_path, map_location=device)
+        state = torch.load(model_path, map_location=device, weights_only=False)
         model.load_state_dict(state)
         model.eval()
         _model = model
