@@ -2,7 +2,7 @@ streamlit
 numpy
 pandas
 joblib
-opencv-python
+opencv-python-headless
 ultralytics
 scikit-learn
 torch
