@@ -1,6 +1,7 @@
 import os
-os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
 
 from ultralytics import YOLO
