@@ -4,9 +4,10 @@ streamlit
 numpy
 pandas
 joblib
-opencv-python-headless
-ultralytics
+opencv-python-headless==4.13.0.90
+ultralytics==8.4.7
 scikit-learn
-torch==2.1.2+cpu
-torchvision==0.16.2+cpu
+torch==2.9.1+cpu
+torchvision==0.24.1+cpu
+
 Pillow
