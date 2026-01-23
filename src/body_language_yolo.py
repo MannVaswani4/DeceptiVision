@@ -1,3 +1,8 @@
+import os
+os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
+
 from ultralytics import YOLO
 import torch
 import cv2
