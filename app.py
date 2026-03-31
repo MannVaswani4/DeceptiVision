@@ -250,6 +250,12 @@ st.markdown("""
 # --- CRT OVERLAY ---
 st.markdown('<div class="scanline"></div>', unsafe_allow_html=True)
 
+# --- KEEP-ALIVE: refresh page activity every 5 minutes to prevent session timeout ---
+st.markdown(
+    '<meta http-equiv="refresh" content="300">',
+    unsafe_allow_html=True
+)
+
 # --- STATE MANAGEMENT ---
 if 'entered' not in st.session_state:
     st.session_state['entered'] = False

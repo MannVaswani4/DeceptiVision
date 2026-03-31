@@ -6,6 +6,10 @@ data/
 # Model weights (optional, if large)
 checkpoints/
 
+# Python virtual environments
+venv/
+env/
+.venv/
 
 # Python cache
 __pycache__/
@@ -19,3 +23,6 @@ __pycache__/
 
 node_modules
 *.wmv
+
+# Streamlit temp files
+__streamlit_temp.csv
