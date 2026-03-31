@@ -8,6 +8,12 @@ import time
 
 from src.feature_extractor import process_video_to_features
 
+
+@st.cache_resource(show_spinner=False)
+def load_classifier():
+    """Load the deception classifier once and cache it for all sessions."""
+    return joblib.load("models/deception_classifier.pkl")
+
 st.set_page_config(page_title="DeceptiVision", page_icon="👁️", layout="wide")
 
 # --- CUSTOM CSS: CYBER-NOIR THEME & ANIMATIONS ---
@@ -326,8 +332,8 @@ else:
             if features is None:
                 st.error("❌ SIGNAL LOST. UNABLE TO PROCESS FRAMES.")
             else:
-                # Load classifier
-                clf = joblib.load("models/deception_classifier.pkl")
+                # Load classifier (cached - only loaded once)
+                clf = load_classifier()
 
                 X = pd.DataFrame([features], columns=clf.feature_names_in_)
                 pred = clf.predict(X)[0]
