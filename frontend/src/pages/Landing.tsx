@@ -77,7 +77,7 @@ export default function Landing() {
               animateBy="words"
               direction="top"
               onAnimationComplete={handleBlurComplete}
-              className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight"
+              className="text-5xl md:text-6xl font-bold flex justify-center text-gray-900 leading-tight"
             />
           </div>
 
