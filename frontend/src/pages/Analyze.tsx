@@ -66,7 +66,7 @@ export default function Analyze() {
   };
 
   return (
-    <div className="min-h-screen mt-16 bg-gray-50">
+    <div className=" mt-16 bg-gray-50">
       {/* Top bar */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center gap-4">
