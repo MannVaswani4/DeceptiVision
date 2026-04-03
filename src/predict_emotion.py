@@ -3,19 +3,16 @@ import torch.nn.functional as F
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-import os
-import streamlit as st
 
 from src.models.face_cnn import FaceCNN
 
 # Emotion labels (match your original dataset)
 emotion_labels = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]
 
-# Device — MPS is macOS-only; fall back to CPU on Linux / Streamlit Cloud
+# Device — MPS is macOS-only; fall back to CPU on Linux
 def _get_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
-    # MPS only available on Apple Silicon Macs
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
@@ -29,14 +26,19 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+# Module-level cache (works for both Streamlit AND FastAPI)
+_emotion_model = None
 
-@st.cache_resource(show_spinner=False)
 def load_emotion_model(model_path="models/emotion_cnn.pth"):
     """Load the FaceCNN model once and cache it for all sessions."""
+    global _emotion_model
+    if _emotion_model is not None:
+        return _emotion_model
     model = FaceCNN(num_emotions=7).to(device)
     state = torch.load(model_path, map_location=device, weights_only=False)
     model.load_state_dict(state)
     model.eval()
+    _emotion_model = model
     return model
 
 
