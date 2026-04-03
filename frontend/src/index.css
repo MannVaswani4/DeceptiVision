@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #FAFAFA;
+    color: #111827;
+    line-height: 1.6;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-indigo-500 text-white px-6 py-3 rounded-xl font-medium text-sm
+           hover:bg-indigo-600 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-medium text-sm
+           border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200
+           shadow-sm hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm p-6;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-md hover:-translate-y-1 transition-all duration-200;
+  }
+
+  .section {
+    @apply py-20 px-6 max-w-6xl mx-auto;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider
+           text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full;
+  }
+
+  .tag {
+    @apply inline-flex items-center text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full;
+  }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F9FAFB;
+}
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Drop zone */
+.drop-zone-active {
+  border-color: #6366F1 !important;
+  background-color: #EEF2FF !important;
+}

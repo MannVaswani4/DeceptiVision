@@ -1,28 +1,52 @@
-data/
-*.zip
+## ── Video & media files ──────────────────────────────────────────────────────
 *.mp4
+*.mov
+*.avi
+*.wmv
 *.wav
+*.zip
 
-# Model weights (optional, if large)
+## ── Data & training artifacts ────────────────────────────────────────────────
+data/
+videos/
 checkpoints/
+training/
 
-# Python virtual environments
+## ── Python ───────────────────────────────────────────────────────────────────
 venv/
 env/
 .venv/
-
-# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
 
-# Jupyter checkpoints
+## ── Jupyter ──────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 
-# macOS system files
-.DS_Store
-
-node_modules
-*.wmv
-
-# Streamlit temp files
+## ── Streamlit temp files ─────────────────────────────────────────────────────
 __streamlit_temp.csv
+__api_temp.csv
+
+## ── React / Node ─────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+## ── Environment variables ────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+*.env
+
+## ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
