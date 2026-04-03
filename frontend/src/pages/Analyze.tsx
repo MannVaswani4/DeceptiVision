@@ -66,7 +66,7 @@ export default function Analyze() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen mt-16 bg-gray-50">
       {/* Top bar */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center gap-4">
@@ -75,7 +75,6 @@ export default function Analyze() {
             Back
           </Link>
           <div className="h-5 w-px bg-gray-200" />
-          <span className="text-sm font-medium text-gray-800">Analyze Video</span>
 
           {/* Stage breadcrumb */}
           <div className="ml-auto flex items-center gap-1.5 text-xs text-gray-400">
