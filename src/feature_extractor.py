@@ -6,7 +6,7 @@ import numpy as np
 import csv
 import os
 
-def process_video_to_features(video_path, class_label, out_csv, fps=2, return_features=False):
+def process_video_to_features(video_path, class_label, out_csv, fps=2, return_features=False, max_frames=None):
     """
     Extracts:
         - Emotion timeline
@@ -16,6 +16,7 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
         - 7 body-language features
     Then writes one row to CSV.
     If return_features=True, returns the features list. Like app.py expects.
+    max_frames: if set, caps total frames processed (for production speed).
     """
 
     video_name = Path(video_path).stem
@@ -27,6 +28,11 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
 
     # List frames
     frames = sorted([f for f in os.listdir(frame_dir) if f.lower().endswith((".jpg", ".png"))])
+
+    # Cap frames for production speed
+    if max_frames and len(frames) > max_frames:
+        step = len(frames) // max_frames
+        frames = frames[::step][:max_frames]
 
     if len(frames) == 0:
         print(f"⚠️ No frames extracted for {video_name}")
