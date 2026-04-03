@@ -37,7 +37,8 @@ export default function Analyze() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const resp = await fetch('/api/analyze', {
+      const apiBase = import.meta.env.VITE_API_URL ?? '';
+      const resp = await fetch(`${apiBase}/api/analyze`, {
         method: 'POST',
         body: formData,
       });
