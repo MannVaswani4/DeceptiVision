@@ -122,6 +122,10 @@ def generate_insights(confidence: float, prediction: str) -> List[InsightItem]:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+@app.get("/")
+def root():
+    return {"status": "ok", "model": "deception_classifier_v2"}
+
 @app.get("/health")
 def health():
     return {"status": "ok", "model": "deception_classifier_v2"}
