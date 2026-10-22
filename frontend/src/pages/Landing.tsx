@@ -7,7 +7,7 @@ import FeatureCard from '../components/FeatureCard';
 import HowItWorks from '../components/HowItWorks';
 import RecruiterHook from '../components/RecruiterHook';
 import About from '../components/About';
-import Roadmap from '../components/Roadmap';
+
 
 const features = [
   {
@@ -176,7 +176,7 @@ export default function Landing() {
       <About />
 
       {/* ── ROADMAP ── */}
-      <Roadmap />
+
 
       {/* ── FOOTER CTA ── */}
       <section className="py-20 px-6 bg-indigo-500">

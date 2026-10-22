@@ -27,7 +27,6 @@ export default function Navbar() {
     { label: 'Features', id: 'features' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'About', id: 'about' },
-    { label: 'Roadmap', id: 'roadmap' },
   ];
 
   return (
