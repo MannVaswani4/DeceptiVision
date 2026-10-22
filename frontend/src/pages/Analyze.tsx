@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -23,39 +23,46 @@ export default function Analyze() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const apiPromiseRef = useRef<Promise<unknown>>(Promise.resolve());
 
   const handleFile = (f: File) => {
     setFile(f);
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     if (!file) return;
-    setStage('loading');
     setErrorMsg('');
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
 
-      const apiBase = import.meta.env.VITE_API_URL ?? '';
-      const resp = await fetch(`${apiBase}/api/analyze`, {
-        method: 'POST',
-        body: formData,
+    const apiBase = import.meta.env.VITE_API_URL ?? '';
+
+    // Store the real fetch promise BEFORE switching to loading stage
+    // so LoadingExperience can watch it from the very first render.
+    const promise = fetch(`${apiBase}/api/analyze`, {
+      method: 'POST',
+      body: formData,
+    })
+      .then(async resp => {
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ detail: 'Analysis failed.' }));
+          throw new Error(err.detail || 'Analysis failed.');
+        }
+        return resp.json() as Promise<AnalysisResult>;
+      })
+      .then(data => {
+        setResult(data);
+        setStage('results');
+      })
+      .catch((err: unknown) => {
+        console.error(err);
+        setErrorMsg(err instanceof Error ? err.message : 'Something went wrong.');
+        setStage('error');
       });
 
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ detail: 'Analysis failed.' }));
-        throw new Error(err.detail || 'Analysis failed.');
-      }
-
-      const data: AnalysisResult = await resp.json();
-      setResult(data);
-      setStage('results');
-    } catch (err: unknown) {
-      console.error(err);
-      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong.');
-      setStage('error');
-    }
+    apiPromiseRef.current = promise;
+    setStage('loading');
   };
 
   const reset = () => {
@@ -146,9 +153,7 @@ export default function Analyze() {
             >
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Analyzing…</h1>
               <p className="text-gray-400 text-sm mb-8">This usually takes 15–30 seconds depending on video length.</p>
-              <LoadingExperience onComplete={() => {
-                // The actual API call drives the state transition, this is just UI timing
-              }} />
+              <LoadingExperience apiPromise={apiPromiseRef.current} />
             </motion.div>
           )}
 
