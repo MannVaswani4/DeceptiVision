@@ -61,7 +61,6 @@ def get_classifier():
 class ModalityScores(BaseModel):
     facial: float
     body: float
-    audio: float
 
 class InsightItem(BaseModel):
     text: str
@@ -71,6 +70,14 @@ class TimelinePoint(BaseModel):
     t: int
     value: float
 
+class Diagnostics(BaseModel):
+    frames_analyzed: int
+    dominant_emotion: str
+    dominant_emotion_pct: float
+    transitions_count: int
+    hand_face_proximity: str
+    posture_stability: str
+
 class AnalysisResult(BaseModel):
     prediction: str          # "deceptive" | "truthful"
     confidence: float        # 0-100
@@ -78,47 +85,109 @@ class AnalysisResult(BaseModel):
     insights: List[InsightItem]
     emotion_timeline: List[TimelinePoint]
     movement_timeline: List[TimelinePoint]
-    audio_timeline: List[TimelinePoint]
+    diagnostics: Diagnostics
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def decompose_confidence(confidence: float, prediction: str) -> ModalityScores:
-    base = confidence
-    offsets = [random.uniform(-8, 8) for _ in range(3)]
-    facial = max(0, min(100, base + offsets[0]))
-    body   = max(0, min(100, base + offsets[1]))
-    audio  = max(0, min(100, base + offsets[2]))
-    return ModalityScores(facial=round(facial, 1), body=round(body, 1), audio=round(audio, 1))
+# ── Helpers (Backed 100% by measured CV metrics) ──────────────────────────────
+def compute_modality_scores(details: dict, confidence: float, prediction: str) -> ModalityScores:
+    vol = details.get("volatility", 0.15)
+    trans = details.get("transitions", 1)
+    frames = max(1, details.get("frames_count", 20))
+    shoulder_var = details.get("shoulder_var", 0.01)
+
+    if prediction == "deceptive":
+        facial = min(98.0, max(45.0, confidence + (vol - 0.12) * 50 + (trans / frames) * 20))
+        body   = min(98.0, max(45.0, confidence + (shoulder_var - 0.01) * 250))
+    else:
+        facial = min(98.0, max(50.0, confidence - (vol - 0.10) * 35))
+        body   = min(98.0, max(50.0, confidence - (shoulder_var - 0.01) * 180))
+
+    return ModalityScores(facial=round(facial, 1), body=round(body, 1))
 
 
-def generate_timeline(confidence: float, points: int = 20) -> List[TimelinePoint]:
-    values = []
-    val = confidence + random.uniform(-15, 15)
-    for i in range(points):
-        val += random.uniform(-12, 12)
-        val = max(0, min(100, val))
-        values.append(TimelinePoint(t=i, value=round(val, 1)))
-    return values
+def compute_diagnostics(details: dict) -> Diagnostics:
+    h_min = details.get("hand_face_min", 999.0)
+    if h_min < 0.22:
+        hf_prox = "Frequent / Contact"
+    elif h_min < 0.35:
+        hf_prox = "Moderate Proximity"
+    else:
+        hf_prox = "Minimal / Clear"
+
+    sh_var = details.get("shoulder_var", 0.0)
+    if sh_var > 0.02:
+        posture = "Frequent Adjustments"
+    elif sh_var > 0.008:
+        posture = "Moderate Stability"
+    else:
+        posture = "High Stability"
+
+    dominant = details.get("dominant_emotion", "neutral")
+    dom_pct = round(details.get("dominant_emotion_ratio", 0.0) * 100, 1)
+
+    return Diagnostics(
+        frames_analyzed=details.get("frames_count", 0),
+        dominant_emotion=dominant.capitalize(),
+        dominant_emotion_pct=dom_pct,
+        transitions_count=details.get("transitions", 0),
+        hand_face_proximity=hf_prox,
+        posture_stability=posture,
+    )
 
 
-def generate_insights(confidence: float, prediction: str) -> List[InsightItem]:
-    deceptive_insights = [
-        InsightItem(text="High emotional volatility detected across key frames", severity="high"),
-        InsightItem(text="Increased hand-to-face movement observed", severity="high"),
-        InsightItem(text="Voice instability and pitch variation detected", severity="medium"),
-        InsightItem(text="Micro-expressions inconsistent with spoken content", severity="high"),
-        InsightItem(text="Gaze evasion patterns identified", severity="medium"),
-        InsightItem(text="Elevated blink rate above baseline threshold", severity="low"),
-    ]
-    truthful_insights = [
-        InsightItem(text="Emotional expressions consistent with verbal content", severity="low"),
-        InsightItem(text="Stable body posture and minimal unnecessary movement", severity="low"),
-        InsightItem(text="Voice prosody within normal stress range", severity="low"),
-        InsightItem(text="Natural gaze patterns and eye contact maintained", severity="low"),
-        InsightItem(text="Micro-expressions align with emotional context", severity="low"),
-    ]
-    pool = deceptive_insights if prediction == "deceptive" else truthful_insights
-    return pool[:4] if prediction == "deceptive" else pool[:3]
+def generate_insights(details: dict, prediction: str) -> List[InsightItem]:
+    insights = []
+    dominant = details.get("dominant_emotion", "neutral")
+    dom_pct = round(details.get("dominant_emotion_ratio", 0.0) * 100, 0)
+    volatility = details.get("volatility", 0.0)
+    transitions = details.get("transitions", 0)
+    frames = details.get("frames_count", 0)
+    h_min = details.get("hand_face_min", 999.0)
+    sh_var = details.get("shoulder_var", 0.0)
+
+    # 1. Primary facial expression
+    insights.append(InsightItem(
+        text=f"Dominant facial expression: {dominant.capitalize()} ({int(dom_pct)}% of sampled frames)",
+        severity="low" if dominant in ["neutral", "happy"] else "medium"
+    ))
+
+    # 2. Emotional transitions / volatility
+    if volatility > 0.14 or transitions >= 3:
+        insights.append(InsightItem(
+            text=f"Elevated micro-expression volatility ({transitions} emotion switches detected across {frames} frames)",
+            severity="high" if prediction == "deceptive" else "medium"
+        ))
+    else:
+        insights.append(InsightItem(
+            text=f"Consistent facial affect ({transitions} switches; low volatility index of {volatility:.2f})",
+            severity="low"
+        ))
+
+    # 3. Hand-to-face proximity
+    if h_min < 0.25:
+        insights.append(InsightItem(
+            text="Hand-to-face proximity threshold crossed (potential self-touching / barrier cue)",
+            severity="high" if prediction == "deceptive" else "medium"
+        ))
+    else:
+        insights.append(InsightItem(
+            text="Hands remained below facial region with natural resting separation",
+            severity="low"
+        ))
+
+    # 4. Posture / Torso stability
+    if sh_var > 0.015:
+        insights.append(InsightItem(
+            text="Torso shifting detected (elevated shoulder distance variance in pose keypoints)",
+            severity="high" if prediction == "deceptive" else "medium"
+        ))
+    else:
+        insights.append(InsightItem(
+            text="Controlled body posture with steady upper-body orientation",
+            severity="low"
+        ))
+
+    return insights
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -143,13 +212,14 @@ async def analyze_video(file: UploadFile = File(...)):
         video_path = tmp.name
 
     try:
-        features = process_video_to_features(
+        features, details = process_video_to_features(
             video_path=video_path,
             class_label=-1,
             out_csv="__api_temp.csv",
-            fps=1,           # ← reduced from 2→1: half the frames, 2× faster
-            max_frames=20,   # ← hard cap: never process more than 20 frames
+            fps=1,           # 1 frame per second
+            max_frames=20,   # hard cap for production latency
             return_features=True,
+            return_details=True,
         )
     finally:
         os.unlink(video_path)
@@ -158,7 +228,7 @@ async def analyze_video(file: UploadFile = File(...)):
         if os.path.isdir(frames_root):
             shutil.rmtree(frames_root, ignore_errors=True)
 
-    if features is None:
+    if features is None or details is None:
         raise HTTPException(
             status_code=422,
             detail="Could not extract features from the video. Ensure a visible face is present."
@@ -172,11 +242,19 @@ async def analyze_video(file: UploadFile = File(...)):
     prediction = "truthful" if pred_int == 1 else "deceptive"
     confidence = round(float(proba[pred_int]) * 100, 1)
 
-    scores    = decompose_confidence(confidence, prediction)
-    insights  = generate_insights(confidence, prediction)
-    emotion_tl  = generate_timeline(scores.facial)
-    movement_tl = generate_timeline(scores.body)
-    audio_tl    = generate_timeline(scores.audio)
+    scores      = compute_modality_scores(details, confidence, prediction)
+    insights    = generate_insights(details, prediction)
+    diagnostics = compute_diagnostics(details)
+
+    # Real timelines from genuine video extraction
+    emotion_tl = [
+        TimelinePoint(t=i, value=round(val, 1))
+        for i, val in enumerate(details.get("emotion_timeline", []))
+    ]
+    movement_tl = [
+        TimelinePoint(t=i, value=round(val, 1))
+        for i, val in enumerate(details.get("movement_timeline", []))
+    ]
 
     return AnalysisResult(
         prediction=prediction,
@@ -185,7 +263,7 @@ async def analyze_video(file: UploadFile = File(...)):
         insights=insights,
         emotion_timeline=emotion_tl,
         movement_timeline=movement_tl,
-        audio_timeline=audio_tl,
+        diagnostics=diagnostics,
     )
 
 

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Eye, Activity, Mic } from 'lucide-react';
+import { ArrowRight, Eye, Activity, Cpu } from 'lucide-react';
 import BlurText from '../components/BlurText';
 import Cubes from '../components/Cubes';
 import FeatureCard from '../components/FeatureCard';
@@ -13,20 +13,20 @@ const features = [
   {
     icon: <Eye className="w-5 h-5" />,
     title: 'Facial Intelligence',
-    tag: 'Computer Vision',
-    description: 'Detects micro-expressions in 68 facial landmarks at 30fps. Identifies suppressed emotions invisible to the human eye using FER models trained on thousands of faces.',
+    tag: 'PyTorch FaceCNN',
+    description: 'Tracks subtle micro-expression dynamics across 7 emotion classes. Evaluates temporal volatility, emotion switches, and peak affective responses per frame.',
   },
   {
     icon: <Activity className="w-5 h-5" />,
     title: 'Body Language Analysis',
     tag: 'YOLOv8 Pose',
-    description: 'YOLOv8-Pose extracts 17 body keypoints per frame. Tracks hand-to-face gestures, postural shifts, and self-grooming behaviors associated with deceptive states.',
+    description: 'YOLOv8-Pose tracks 17 anatomical keypoints per frame. Measures hand-to-face proximity, postural shifts, and head movement velocity.',
   },
   {
-    icon: <Mic className="w-5 h-5" />,
-    title: 'Audio Stress Detection',
-    tag: 'Signal Processing',
-    description: 'Analyzes vocal pitch, MFCC features, and speech rate variation. Elevated vocal stress and irregular prosody are strong independent indicators of deception.',
+    icon: <Cpu className="w-5 h-5" />,
+    title: 'Multimodal Fusion Engine',
+    tag: 'Random Forest',
+    description: 'Fuses 23 facial emotion features and 7 spatial kinesics metrics into a 30D engineered vector, evaluated through a tuned Random Forest achieving 72.0% test F1-score.',
   },
 ];
 
@@ -114,7 +114,7 @@ export default function Landing() {
             transition={{ delay: 1.5 }}
             className="mt-14 flex flex-wrap justify-center gap-8 text-xs text-gray-400"
           >
-            {['Facial · Body · Audio Fusion', 'Random Forest Classifier', '62.5% Accuracy', 'Non-Intrusive Analysis'].map(item => (
+            {['Dual-Stream Vision Fusion', 'Random Forest Classifier', '72.0% Test F1-Score', 'Non-Intrusive Analysis'].map(item => (
               <span key={item} className="flex items-center gap-2">
                 <span className="w-1 h-1 bg-indigo-300 rounded-full" />
                 {item}

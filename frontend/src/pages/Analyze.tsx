@@ -4,24 +4,14 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UploadZone from '../components/UploadZone';
 import LoadingExperience from '../components/LoadingExperience';
-import ResultsDashboard from '../components/ResultsDashboard';
+import ResultsDashboard, { ResultsData } from '../components/ResultsDashboard';
 
 type Stage = 'upload' | 'loading' | 'results' | 'error';
-
-interface AnalysisResult {
-  prediction: 'deceptive' | 'truthful';
-  confidence: number;
-  scores: { facial: number; body: number; audio: number };
-  insights: { text: string; severity: 'high' | 'medium' | 'low' }[];
-  emotion_timeline: { t: number; value: number }[];
-  movement_timeline: { t: number; value: number }[];
-  audio_timeline: { t: number; value: number }[];
-}
 
 export default function Analyze() {
   const [stage, setStage] = useState<Stage>('upload');
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<ResultsData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const apiPromiseRef = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -49,7 +39,7 @@ export default function Analyze() {
           const err = await resp.json().catch(() => ({ detail: 'Analysis failed.' }));
           throw new Error(err.detail || 'Analysis failed.');
         }
-        return resp.json() as Promise<AnalysisResult>;
+        return resp.json() as Promise<ResultsData>;
       })
       .then(data => {
         setResult(data);
@@ -114,7 +104,7 @@ export default function Analyze() {
               <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Upload a Video</h1>
                 <p className="text-gray-500 text-sm">
-                  We'll analyze facial expressions, body language, and audio to detect deceptive behavior.
+                  We'll analyze facial micro-expressions and body language dynamics to detect deceptive cues.
                 </p>
               </div>
 
@@ -134,9 +124,9 @@ export default function Analyze() {
               <div className="mt-8 card text-xs text-gray-400 space-y-2">
                 <p className="font-medium text-gray-500 text-xs uppercase tracking-wider mb-3">Tips for best results</p>
                 <p>✓ Video should have a clearly visible face throughout</p>
-                <p>✓ Minimum 15–30 seconds for reliable analysis</p>
-                <p>✓ Good lighting and minimal background noise improves audio analysis</p>
-                <p>✓ Subject should be speaking or actively communicating</p>
+                <p>✓ Minimum 15–30 seconds for reliable temporal analysis</p>
+                <p>✓ Good lighting and stable camera angle improve pose & face tracking</p>
+                <p>✓ Subject should be positioned facing the camera</p>
               </div>
             </motion.div>
           )}

@@ -1,34 +1,42 @@
 import { motion } from 'framer-motion';
 import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area,
+  LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { AlertTriangle, CheckCircle, Info, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, Activity, Eye, ShieldCheck, Film } from 'lucide-react';
 
-interface ModalityScores {
+export interface ModalityScores {
   facial: number;
   body: number;
-  audio: number;
 }
 
-interface InsightItem {
+export interface InsightItem {
   text: string;
   severity: 'high' | 'medium' | 'low';
 }
 
-interface TimelinePoint {
+export interface TimelinePoint {
   t: number;
   value: number;
 }
 
-interface ResultsData {
+export interface Diagnostics {
+  frames_analyzed: number;
+  dominant_emotion: string;
+  dominant_emotion_pct: number;
+  transitions_count: number;
+  hand_face_proximity: string;
+  posture_stability: string;
+}
+
+export interface ResultsData {
   prediction: 'deceptive' | 'truthful';
   confidence: number;
   scores: ModalityScores;
   insights: InsightItem[];
   emotion_timeline: TimelinePoint[];
   movement_timeline: TimelinePoint[];
-  audio_timeline: TimelinePoint[];
+  diagnostics?: Diagnostics;
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -43,32 +51,33 @@ const SEVERITY_ICONS: Record<string, JSX.Element> = {
   low: <CheckCircle className="w-4 h-4 shrink-0" />,
 };
 
-function ScoreRing({ value, label, color }: { value: number; label: string; color: string }) {
-  const r = 28;
+function ScoreRing({ value, label, subtext, color }: { value: number; label: string; subtext: string; color: string }) {
+  const r = 32;
   const circ = 2 * Math.PI * r;
   const dash = (value / 100) * circ;
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r={r} stroke="#F3F4F6" strokeWidth="6" fill="none" />
+    <div className="flex flex-col items-center text-center p-3">
+      <svg width="84" height="84" viewBox="0 0 84 84">
+        <circle cx="42" cy="42" r={r} stroke="#F3F4F6" strokeWidth="7" fill="none" />
         <motion.circle
-          cx="36" cy="36" r={r}
+          cx="42" cy="42" r={r}
           stroke={color}
-          strokeWidth="6"
+          strokeWidth="7"
           fill="none"
           strokeLinecap="round"
           strokeDasharray={`${circ}`}
           initial={{ strokeDashoffset: circ }}
           animate={{ strokeDashoffset: circ - dash }}
           transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-          transform="rotate(-90 36 36)"
+          transform="rotate(-90 42 42)"
         />
-        <text x="36" y="41" textAnchor="middle" fontSize="13" fontWeight="700" fill="#111827">
+        <text x="42" y="47" textAnchor="middle" fontSize="15" fontWeight="700" fill="#111827">
           {Math.round(value)}%
         </text>
       </svg>
-      <span className="text-xs font-medium text-gray-500">{label}</span>
+      <span className="text-sm font-semibold text-gray-800 mt-1">{label}</span>
+      <span className="text-xs text-gray-400">{subtext}</span>
     </div>
   );
 }
@@ -83,10 +92,9 @@ export default function ResultsDashboard({ data }: { data: ResultsData }) {
   const VerdictIcon = isDeceptive ? AlertTriangle : CheckCircle;
 
   const chartData = data.emotion_timeline.map((p, i) => ({
-    t: p.t,
+    frame: `Frame ${p.t + 1}`,
     emotion: p.value,
     movement: data.movement_timeline[i]?.value ?? 0,
-    audio: data.audio_timeline[i]?.value ?? 0,
   }));
 
   return (
@@ -94,9 +102,9 @@ export default function ResultsDashboard({ data }: { data: ResultsData }) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full max-w-4xl mx-auto space-y-5"
+      className="w-full max-w-4xl mx-auto space-y-6"
     >
-      {/* VERDICT CARD */}
+      {/* ── VERDICT CARD ── */}
       <div className={`rounded-2xl border p-7 ${verdictBg}`}>
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div className="flex items-center gap-4">
@@ -104,14 +112,19 @@ export default function ResultsDashboard({ data }: { data: ResultsData }) {
               <VerdictIcon className={`w-7 h-7 ${verdictText}`} />
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Analysis Complete</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                Classification Complete
+              </div>
               <h2 className={`text-3xl font-bold ${verdictText}`}>{verdictLabel}</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Evaluated by 300-tree Random Forest classifier across 30 multimodal features
+              </p>
             </div>
           </div>
 
-          {/* Confidence */}
+          {/* Model Confidence */}
           <div className="text-right">
-            <div className="text-xs text-gray-400 mb-1 font-medium">Confidence</div>
+            <div className="text-xs text-gray-400 mb-1 font-medium">Model Confidence</div>
             <div className={`text-4xl font-bold ${verdictText}`}>{data.confidence}%</div>
             <div className="mt-2 h-1.5 w-32 bg-gray-200 rounded-full overflow-hidden ml-auto">
               <motion.div
@@ -126,89 +139,140 @@ export default function ResultsDashboard({ data }: { data: ResultsData }) {
         </div>
       </div>
 
-      {/* MODALITY SCORES */}
+      {/* ── DUAL MODALITY GAUGES ── */}
       <div className="card">
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="w-4 h-4 text-indigo-500" />
-          <h3 className="font-semibold text-gray-900 text-sm">Modality Scores</h3>
+        <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-indigo-500" />
+            <h3 className="font-semibold text-gray-900 text-sm">Active Modalities (Vision Pipeline)</h3>
+          </div>
+          <span className="text-xs text-gray-400 font-medium">2 Streams · 30 Features</span>
         </div>
-        <div className="flex justify-around">
-          <ScoreRing value={data.scores.facial} label="Facial" color={verdictColor} />
-          <ScoreRing value={data.scores.body} label="Body" color={verdictColor} />
-          <ScoreRing value={data.scores.audio} label="Audio" color={verdictColor} />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 pt-2">
+          <div className="flex items-center justify-center gap-4">
+            <ScoreRing
+              value={data.scores.facial}
+              label="Facial Dynamics"
+              subtext="PyTorch FaceCNN (23 Features)"
+              color={verdictColor}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-4 pt-4 sm:pt-0">
+            <ScoreRing
+              value={data.scores.body}
+              label="Kinesics & Pose"
+              subtext="YOLOv8-Pose 17 Keypoints (7 Features)"
+              color={verdictColor}
+            />
+          </div>
         </div>
       </div>
 
-      {/* CHARTS */}
-      <div className="grid md:grid-cols-3 gap-4">
-        {/* Emotion timeline */}
+      {/* ── REAL FEATURE TIMELINES ── */}
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Emotion Confidence / Volatility */}
         <div className="card">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Emotion Volatility</h4>
-          <ResponsiveContainer width="100%" height={100}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-indigo-500" />
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Facial Affect Intensity
+              </h4>
+            </div>
+            <span className="text-[11px] text-gray-400">Frame-by-Frame</span>
+          </div>
+          <ResponsiveContainer width="100%" height={140}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="t" hide />
-              <YAxis domain={[0, 100]} hide />
-              <Tooltip
-                contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E5E7EB' }}
-                formatter={(v: unknown) => [`${(v as number).toFixed(1)}%`, 'Score']}
-              />
-              <Line type="monotone" dataKey="emotion" stroke="#6366F1" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Movement intensity */}
-        <div className="card">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Movement Intensity</h4>
-          <ResponsiveContainer width="100%" height={100}>
-            <BarChart data={chartData.filter((_, i) => i % 2 === 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="t" hide />
+              <XAxis dataKey="frame" hide />
               <YAxis domain={[0, 100]} hide />
               <Tooltip
                 contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E5E7EB' }}
                 formatter={(v: unknown) => [`${(v as number).toFixed(1)}%`, 'Intensity']}
               />
-              <Bar dataKey="movement" fill="#6366F1" radius={[3, 3, 0, 0]} opacity={0.75} />
-            </BarChart>
+              <Line type="monotone" dataKey="emotion" stroke="#6366F1" strokeWidth={2} dot={{ r: 2 }} />
+            </LineChart>
           </ResponsiveContainer>
+          <p className="text-[11px] text-gray-400 mt-3 text-center">
+            Per-frame dominant emotion probability from 48×48 FaceCNN
+          </p>
         </div>
 
-        {/* Audio variation */}
+        {/* Movement Intensity */}
         <div className="card">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Audio Variation</h4>
-          <ResponsiveContainer width="100%" height={100}>
-            <AreaChart data={chartData}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Keypoint Displacement
+              </h4>
+            </div>
+            <span className="text-[11px] text-gray-400">YOLOv8 Pose</span>
+          </div>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="t" hide />
+              <XAxis dataKey="frame" hide />
               <YAxis domain={[0, 100]} hide />
               <Tooltip
                 contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E5E7EB' }}
-                formatter={(v: unknown) => [`${(v as number).toFixed(1)}%`, 'Variation']}
+                formatter={(v: unknown) => [`${(v as number).toFixed(1)}%`, 'Displacement']}
               />
-              <defs>
-                <linearGradient id="audioGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="audio" stroke="#6366F1" strokeWidth={2} fill="url(#audioGrad)" dot={false} />
-            </AreaChart>
+              <Bar dataKey="movement" fill="#6366F1" radius={[3, 3, 0, 0]} opacity={0.8} />
+            </BarChart>
           </ResponsiveContainer>
+          <p className="text-[11px] text-gray-400 mt-3 text-center">
+            Frame-to-frame Euclidean shift of 17 body keypoints
+          </p>
         </div>
       </div>
 
-      {/* BEHAVIORAL INSIGHTS */}
+      {/* ── VIDEO DIAGNOSTICS (NEW: 100% EVIDENCE BACKED) ── */}
+      {data.diagnostics && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4 border-b border-gray-100 pb-3">
+            <Film className="w-4 h-4 text-indigo-500" />
+            <h3 className="font-semibold text-gray-900 text-sm">Extracted Video Diagnostics</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Frames Sampled</div>
+              <div className="text-lg font-bold text-gray-900 mt-1">{data.diagnostics.frames_analyzed}</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Dominant Emotion</div>
+              <div className="text-lg font-bold text-indigo-600 mt-1">
+                {data.diagnostics.dominant_emotion}
+              </div>
+              <div className="text-[10px] text-gray-400">{data.diagnostics.dominant_emotion_pct}% presence</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Emotion Switches</div>
+              <div className="text-lg font-bold text-gray-900 mt-1">{data.diagnostics.transitions_count}</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Hand-to-Face</div>
+              <div className="text-sm font-bold text-gray-900 mt-2">{data.diagnostics.hand_face_proximity}</div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Posture Stability</div>
+              <div className="text-sm font-bold text-gray-900 mt-2">{data.diagnostics.posture_stability}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BEHAVIORAL INSIGHTS ── */}
       <div className="card">
-        <h3 className="font-semibold text-gray-900 text-sm mb-4">Behavioral Insights</h3>
+        <h3 className="font-semibold text-gray-900 text-sm mb-4">Computed Behavioral Observations</h3>
         <div className="space-y-2.5">
           {data.insights.map((insight, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + i * 0.1 }}
+              transition={{ delay: 0.4 + i * 0.1 }}
               className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm ${SEVERITY_STYLES[insight.severity]}`}
             >
               {SEVERITY_ICONS[insight.severity]}

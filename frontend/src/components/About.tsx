@@ -2,9 +2,9 @@ import { motion } from 'framer-motion';
 import { Layers, Zap, GitBranch } from 'lucide-react';
 
 const modalities = [
-  { icon: <Zap className="w-4 h-4" />, label: 'Facial Micro-expressions', detail: 'FER / OpenCV pipeline' },
-  { icon: <GitBranch className="w-4 h-4" />, label: 'Body Pose Analysis', detail: 'YOLOv8 keypoints' },
-  { icon: <Layers className="w-4 h-4" />, label: 'Audio Stress Features', detail: 'Spectral & prosody' },
+  { icon: <Zap className="w-4 h-4" />, label: 'Facial Micro-expressions', detail: 'PyTorch FaceCNN (23 features)' },
+  { icon: <GitBranch className="w-4 h-4" />, label: 'Body Pose Analysis', detail: 'YOLOv8 17 keypoints (7 features)' },
+  { icon: <Layers className="w-4 h-4" />, label: 'Temporal Feature Aggregator', detail: 'Volatility & contact dynamics' },
 ];
 
 export default function About() {
@@ -21,14 +21,14 @@ export default function About() {
           >
             <div className="badge mb-4">About</div>
             <h2 className="text-3xl font-bold text-gray-900 mb-5">
-              Multimodal AI.<br />
+              Multimodal Vision AI.<br />
               <span className="text-indigo-500">One verdict.</span>
             </h2>
             <p className="text-gray-500 text-base leading-relaxed mb-6">
-              DeceptiVision is a research-grade multimodal deception detection system. Instead of relying on a single signal channel, it fuses three independent streams of behavioral data — giving it a richer, more robust view of human behavior than any single-modality approach.
+              DeceptiVision is an end-to-end multimodal deception detection system. Instead of relying on a single signal channel, it fuses facial micro-expression dynamics with spatial body language cues — capturing subtle non-verbal signals imperceptible to human interviewers.
             </p>
             <p className="text-gray-500 text-base leading-relaxed">
-              The feature vectors from each modality are late-fused and passed to a trained Random Forest classifier, which has been validated on publicly available deception datasets.
+              The 30-dimensional feature vector is classified by a tuned Random Forest ensemble, evaluated on video trials with a 72.0% test F1-score against a 50% chance baseline.
             </p>
           </motion.div>
 

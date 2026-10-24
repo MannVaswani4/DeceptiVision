@@ -12,7 +12,7 @@ const steps = [
     number: '02',
     icon: <Cpu className="w-5 h-5" />,
     title: 'AI Extracts Behavioral Signals',
-    description: 'Our multimodal pipeline simultaneously analyzes micro-expressions using computer vision, body pose via YOLOv8, and audio stress features.',
+    description: 'Our multimodal pipeline simultaneously analyzes micro-expressions via PyTorch FaceCNN and spatial body pose dynamics via YOLOv8.',
   },
   {
     number: '03',

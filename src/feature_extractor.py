@@ -6,7 +6,7 @@ import numpy as np
 import csv
 import os
 
-def process_video_to_features(video_path, class_label, out_csv, fps=2, return_features=False, max_frames=None):
+def process_video_to_features(video_path, class_label, out_csv, fps=2, return_features=False, max_frames=None, return_details=False):
     """
     Extracts:
         - Emotion timeline
@@ -17,6 +17,7 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
     Then writes one row to CSV.
     If return_features=True, returns the features list. Like app.py expects.
     max_frames: if set, caps total frames processed (for production speed).
+    return_details: if True, returns (features, details_dict) containing genuine frame metrics.
     """
 
     video_name = Path(video_path).stem
@@ -36,7 +37,7 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
 
     if len(frames) == 0:
         print(f"⚠️ No frames extracted for {video_name}")
-        return False
+        return (None, None) if return_details else False
 
     emotion_list = []
     pose_list = []
@@ -130,4 +131,41 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
         csv.writer(f).writerow(row)
 
     print(f"✅ Processed {video_name} | Features: {len(features)} | Label: {class_label}")
-    return features 
+
+    if return_details:
+        # Dominant emotion overall (highest ratio)
+        dominant_emotion = max(ratios, key=ratios.get) if ratios else "neutral"
+
+        # Frame-by-frame dominant emotion confidence (0 to 100)
+        emot_tl = [float(np.max(row)) * 100.0 for row in emotion_timeline] if len(emotion_timeline) > 0 else []
+
+        # Normalized movement intensity (0 to 100 range for visualization)
+        if len(movement) > 0:
+            m_max = float(np.max(movement))
+            if m_max > 0:
+                mov_tl = [float(min(100.0, (val / m_max) * 100.0)) for val in movement]
+            else:
+                mov_tl = [0.0 for _ in movement]
+        else:
+            mov_tl = []
+
+        details = {
+            "frames_count": len(frames),
+            "dominant_emotion": dominant_emotion,
+            "dominant_emotion_ratio": float(ratios.get(dominant_emotion, 0.0)),
+            "emotion_ratios": {k: float(v) for k, v in ratios.items()},
+            "transitions": int(transitions),
+            "volatility": float(volatility),
+            "movement_mean": float(movement_mean),
+            "movement_var": float(movement_var),
+            "movement_max": float(movement_max),
+            "shoulder_var": float(shoulder_var),
+            "head_var": float(head_var),
+            "hand_face_min": float(hand_face_min),
+            "hand_face_mean": float(hand_face_mean),
+            "emotion_timeline": emot_tl,
+            "movement_timeline": mov_tl,
+        }
+        return features, details
+
+    return features
