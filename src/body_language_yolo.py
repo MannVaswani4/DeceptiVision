@@ -42,13 +42,21 @@ def extract_yolo_pose(image_path):
     model = get_pose_model()
     results = model(img, verbose=False)
 
+    if not results or len(results) == 0:
+        return np.zeros(51, dtype=np.float32)
+
     kp_obj = results[0].keypoints
-
-    if kp_obj is None:
+    if kp_obj is None or kp_obj.data is None:
         return np.zeros(51, dtype=np.float32)
 
-    if kp_obj.data is None or kp_obj.data.shape[0] == 0:
+    # In YOLOv8, if no person is detected, kp_obj.data can be shape (1, 0, 51) or numel < 51
+    if kp_obj.data.numel() < 51:
         return np.zeros(51, dtype=np.float32)
 
-    kpts = kp_obj.data[0].cpu().numpy()  # shape: (17, 3)
-    return kpts.reshape(-1).astype(np.float32)  # flatten to (51,)
+    try:
+        kpts = kp_obj.data[0].cpu().numpy().reshape(-1).astype(np.float32)
+        if kpts.shape[0] != 51:
+            return np.zeros(51, dtype=np.float32)
+        return kpts
+    except Exception:
+        return np.zeros(51, dtype=np.float32)

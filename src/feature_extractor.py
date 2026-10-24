@@ -52,11 +52,19 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
 
         # Pose keypoints (YOLOv8)
         pose = extract_yolo_pose(frame_path)
+        if pose is None or len(pose) != 51:
+            pose = np.zeros(51, dtype=np.float32)
         pose_list.append(pose)
 
     # Convert to numpy arrays
     emotion_timeline = np.array(emotion_list)   # (N_frames, 7)
     pose_timeline = np.array(pose_list)         # (N_frames, 51)
+
+    # Check if a person or face was ever detected in the video
+    person_frames = sum(1 for p in pose_list if np.any(p != 0))
+    if person_frames == 0:
+        print(f"⚠️ No person or face keypoints detected in any frame for {video_name}")
+        return (None, None) if return_details else False
 
     # ------------ EMOTION FEATURES (YOUR EXISTING LOGIC) ------------
     dominant = np.argmax(emotion_timeline, axis=1)
@@ -65,8 +73,8 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
     for idx, c in zip(unique, counts):
         ratios[emotion_labels[idx]] = c / len(dominant)
 
-    transitions = int(np.sum(dominant[:-1] != dominant[1:]))
-    volatility = float(np.mean(np.abs(np.diff(emotion_timeline, axis=0))))
+    transitions = int(np.sum(dominant[:-1] != dominant[1:])) if len(dominant) > 1 else 0
+    volatility = float(np.mean(np.abs(np.diff(emotion_timeline, axis=0)))) if len(emotion_timeline) > 1 else 0.0
 
     peak_vals = emotion_timeline.max(axis=0)
     var_vals = emotion_timeline.var(axis=0)
@@ -81,21 +89,30 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
 
     # ------------ BODY-LANGUAGE FEATURES (NEW) ------------
     # movement intensity: frame-to-frame change of all keypoints
-    movement = np.linalg.norm(np.diff(pose_timeline, axis=0), axis=1)
-    movement_mean = float(movement.mean())
-    movement_var = float(movement.var())
-    movement_max = float(movement.max())
+    if len(pose_timeline) > 1:
+        movement = np.linalg.norm(np.diff(pose_timeline, axis=0), axis=1)
+        movement_mean = float(movement.mean()) if len(movement) > 0 else 0.0
+        movement_var = float(movement.var()) if len(movement) > 0 else 0.0
+        movement_max = float(movement.max()) if len(movement) > 0 else 0.0
+    else:
+        movement = np.array([0.0], dtype=np.float32)
+        movement_mean = 0.0
+        movement_var = 0.0
+        movement_max = 0.0
 
     # shoulder width stability (keypoints 5 & 6)
     left_shoulder  = pose_timeline[:, 5*3:5*3+2]
     right_shoulder = pose_timeline[:, 6*3:6*3+2]
     shoulder_dist = np.linalg.norm(left_shoulder - right_shoulder, axis=1)
-    shoulder_var = float(shoulder_dist.var())
+    shoulder_var = float(shoulder_dist.var()) if len(shoulder_dist) > 0 else 0.0
 
     # head movement (nose index = 0)
     nose = pose_timeline[:, 0:3]
-    head_speed = np.linalg.norm(np.diff(nose, axis=0), axis=1)
-    head_var = float(head_speed.var())
+    if len(nose) > 1:
+        head_speed = np.linalg.norm(np.diff(nose, axis=0), axis=1)
+        head_var = float(head_speed.var()) if len(head_speed) > 0 else 0.0
+    else:
+        head_var = 0.0
 
     # hand-to-face (keypoints 9=left wrist, 10=right wrist)
     left_wrist = pose_timeline[:, 9*3:9*3+3]
@@ -105,8 +122,8 @@ def process_video_to_features(video_path, class_label, out_csv, fps=2, return_fe
     lw_dist = np.linalg.norm(left_wrist - nose_3d, axis=1)
     rw_dist = np.linalg.norm(right_wrist - nose_3d, axis=1)
 
-    hand_face_min = float(min(lw_dist.min(), rw_dist.min()))
-    hand_face_mean = float((lw_dist.mean() + rw_dist.mean()) / 2)
+    hand_face_min = float(min(lw_dist.min(), rw_dist.min())) if len(lw_dist) > 0 else 1.0
+    hand_face_mean = float((lw_dist.mean() + rw_dist.mean()) / 2) if len(lw_dist) > 0 else 1.0
 
     body_features = [
         movement_mean, movement_var, movement_max,

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UploadZone from '../components/UploadZone';
 import LoadingExperience from '../components/LoadingExperience';
@@ -172,27 +172,40 @@ export default function Analyze() {
           )}
 
           {/* ERROR */}
-          {stage === 'error' && (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="max-w-md mx-auto text-center"
-            >
-              <div className="card border-red-100 bg-red-50">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="w-6 h-6 text-red-500" />
+          {stage === 'error' && (() => {
+            const isNoFace = errorMsg.toLowerCase().includes('face') || errorMsg.toLowerCase().includes('person');
+            return (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-md mx-auto text-center"
+              >
+                <div className={`card ${isNoFace ? 'border-amber-200 bg-amber-50/70' : 'border-red-100 bg-red-50'}`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${isNoFace ? 'bg-amber-100' : 'bg-red-100'}`}>
+                    {isNoFace ? (
+                      <UserX className="w-7 h-7 text-amber-600" />
+                    ) : (
+                      <AlertCircle className="w-7 h-7 text-red-500" />
+                    )}
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    {isNoFace ? 'No Face Detected' : 'Analysis Failed'}
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                    {errorMsg || (isNoFace
+                      ? 'Could not detect a visible face in this video. Please upload a clear recording with the subject facing the camera.'
+                      : 'Could not process the video. Please try again.')}
+                  </p>
+                  <button onClick={reset} className="btn-primary w-full sm:w-auto px-6">
+                    {isNoFace ? 'Choose Another Video' : 'Try Again'}
+                  </button>
                 </div>
-                <h2 className="font-semibold text-gray-900 mb-2">Analysis Failed</h2>
-                <p className="text-sm text-gray-500 mb-6">{errorMsg || 'Could not process the video. Please try again.'}</p>
-                <button onClick={reset} className="btn-primary">
-                  Try Again
-                </button>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
 
         </AnimatePresence>
       </div>
